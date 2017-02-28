@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #game {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #000;
+            background: url(images/sky.png);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #game .pipeD {
+            background: url(images/pipe1.png) top center;
+            position: absolute;
+        }
+
+        #game .pipeU {
+            background: url(images/pipe2.png) bottom center;
+            position: absolute;
+        }
+
+        #bird {
+            width: 52px;
+            height: 25px;
+            /*border-radius: 10px;*/
+            /*background-color: red;*/
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            background: url(images/birds.png) -8px -10px no-repeat;
+        }
+
+    </style>
+</head>
+<body>
+<div id="game">
+    <div id="bird"></div>
+</div>
+<script>
+    var birdTimer=null;
+    var game = document.getElementById("game");//舞台
+    var birdEle = document.getElementById("bird");//表示小鸟的标签
+    var gameover = false;//记录玩家状态的变量
+    var g = 1;//表示重力加速度
+    var i = 0;
+    setInterval(function () {
+        birdEle.style.backgroundPositionX = -52 * i + "px";
+        i++;
+        if (i === 3) {
+            i = 0;
+        }
+    }, 100);
+
+    //1寻找对象
+    //天空
+    var sky={
+        //水平位置
+        x: 0,
+    };
+    //小鸟
+    var bird={
+        entity: birdEle,//小鸟这个对象在页面的真实实体
+        //位置
+        x: birdEle.offsetLeft,
+        y: birdEle.offsetTop,
+       //速度
+        speedX: 5,//小鸟的水平速度
+        speedY: 0,
+    };
+    //2 移动背景
+    birdTimer=setInterval(function(){
+        if(!gameover){
+            //leader=leader+step
+            //（小鸟的水平速度）
+            sky.x=sky.x-bird.speedX;//天空往左走，  小鸟相对才能往前走
+            //根据天空的属性去设置game背景图片的水平位置
+            game.style.backgroundPositionX=sky.x+"px";
+            //设置小鸟的竖直速度
+            bird.speedY=bird.speedY+g;
+            var step=bird.speedY;
+            //leader=leader+step
+            bird.y=bird.y+step;//小鸟对象的位置
+            //4 碰撞检测  不能让小鸟超出舞台
+            //小鸟不能掉到地下 小鸟的top大到一定程度 就不能再变大了
+            //top的最大值 = game的高度 - 小鸟div的高度
+            if(bird.y > game.offsetHeight-birdEle.offsetHeight){
+                bird.y = game.offsetHeight-birdEle.offsetHeight;
+                stop();//死翘翘
+            }
+            //top的最小值为0
+            if(bird.y < 0){
+                bird.y= 0;
+                stop();//死翘翘
+            }
+            //设置小鸟实体的位置
+            bird.entity.style.top=bird.y+"px";
+        }
+    },25)
+
+    //在文档上点击鼠标 让小鸟往上飞
+    document.onclick=function(){
+        //让小鸟往上飞
+        bird.speedY = -10;//竖直方向的数度变为负数 负的是向上
+    };
+    // 管子比较多 需要批量创建
+    //创建管子的构造函数 当前这组管子的水平位置需要在创建的时候传入
+    function Pipe(positionX){
+    //5顶部管子 首先创建顶部管子
+        //这组管子的水平位置
+        this.x=positionX;
+        //这组管子的宽度都是52
+        this.width = 52;
+        //顶部管子的竖直位置和底部管子不同  所以要单独记录
+         this.upPipeY= 0;
+        //顶部管子的高度和底部管子不同 要单独创建
+        //顶部管子的高度范围在 100-275 的范围之间 比较好
+        this.upPipeH= parseInt(Math.random()*175+100);
+        //底部管子
+        //底部管子的竖直位置
+        //底部管子和顶部管子要有200像素的间距
+        this.downPipeY= this.upPipeH+200;
+        //底部管子的高度
+        //底部管子的高度就是 舞台的高度 - 底部管子的y值
+        this.downPipeH= game.offsetHeight-this.downPipeY;
+        //根据对象的属性  创建顶部管子
+        var upPipe=document.createElement("div")//创建管子的盒子
+        upPipe.style.left= this.x+"px";
+        upPipe.style.top= this.upPipeY+"px";
+        upPipe.style.width= this.width+"px";
+        upPipe.style.height= this.upPipeH+"px";
+        upPipe.className="pipeU";
+        //追加到舞台上
+        game.appendChild(upPipe);
+        //根据对象的属性  创建底部管子
+        var downPipe=document.createElement("div")//创建管子的盒子
+        downPipe.style.left= this.x+"px";
+        downPipe.style.top= this.downPipeY+"px";
+        downPipe.style.width= this.width+"px";
+        downPipe.style.height= this.downPipeH+"px";
+        downPipe.className="pipeD";
+        //追加到舞台上
+        game.appendChild(downPipe);
+        //7 管子移动和复制
+        var that=this;
+       timer=setInterval(function(){
+            //leader = leader + step
+            //这组管子的水平位置
+            //console.log(this);this指的是 window;
+            that.x=that.x-1;
+            //判断一下 如果管子从左边出去 就放到右边 重新使用
+            if(that.x<-52){//如果等于0的时候就放到右边 用户会看到管子消失 所以要让管子完全出去
+                that.x= 800;
+            }
+            if(!gameover){
+                //根据计算后的leader 设置 当前这组管子的位置
+                //设置上面管子的水平位置
+                upPipe.style.left= that.x+"px";
+                downPipe.style.left= that.x+"px";
+            }
+                // 8 碰撞管子检测
+                //小鸟碰撞底部管子
+                var downCrash = (bird.x + 34 > that.x) && (bird.x < that.x + 52) && (bird.y + 25 > that.downPipeY);
+                //小鸟撞顶部管子
+                var upCrash = (bird.x + 34 > that.x) && (bird.x < that.x + 52) && (bird.y < that.upPipeH);
+                if (downCrash || upCrash) {
+                    stop();
+                }
+        },10)
+
+    }
+//    new Pipe(400);
+//    new Pipe(600);
+//    new Pipe(800);
+//    new Pipe(1000);
+    var arr=[];
+    for (var j = 0; j < 4; j++) {
+       arr[j] = new Pipe(400 + 200 * j);
+    }
+  function stop(){
+      gameover= true;//死翘翘
+      clearInterval(birdTimer);//清除小鸟的定时器
+      for(var i=0;i<arr.length;i++){
+          clearInterval(arr[i].timer);
+      }
+  }
+
+</script>
+</body>
+</html>
